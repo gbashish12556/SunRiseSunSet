@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">10dp</dimen>
+    <dimen name="button_min_height">10dp</dimen>
+    <dimen name="button_min_width">10dp</dimen>
+    <dimen name="padding_20_dp">20dp</dimen>
+    <dimen name="padding_10_dp">10dp</dimen>
+    <dimen name="vertical_edit_margin">40dp</dimen>
+    <dimen name="corner_radius">4dp</dimen>
+    <dimen name="stroke_width">1dp</dimen>
+    <dimen name="text_size">20sp</dimen>
+    <dimen name="large_text_size">30sp</dimen>
+    <dimen name="semi_large_text_size">25sp</dimen>
+    <dimen name="medium_text_size">20sp</dimen>
+    <dimen name="semi_medium_text_size">15sp</dimen>
+    <dimen name="small_text_size">10sp</dimen>
+    <dimen name="edit_text_places_padding">5dp</dimen>
+    <dimen name="places_text_size">20sp</dimen>
+    <dimen name="normal_button_padding_left">10dp</dimen>
+    <dimen name="normal_button_padding_right">10dp</dimen>
+    <dimen name="normal_button_padding_top">15dp</dimen>
+    <dimen name="normal_button_padding_bottom">15dp</dimen>
+    <dimen name="form_container_padding_left">10dp</dimen>
+    <dimen name="form_container_padding_right">10dp</dimen>
+    <dimen name="form_container_padding_top">25dp</dimen>
+    <dimen name="form_container_padding_bottom">25dp</dimen>
+    <dimen name="form_container_margin_top">25dp</dimen>
+    <dimen name="form_container_margin_bottom">25dp</dimen>
+    <dimen name="confirm_booking_text_margin">5dp</dimen>
+
+    <dimen name="heading_padding">12dp</dimen>
+    <dimen name="text_detail_padding">8dp</dimen>
+
+    <dimen name="elevation">0dp</dimen>
+    <dimen name="twenty_sp">20sp</dimen>
+    <dimen name="ten_sp">10sp</dimen>
+    <dimen name="fifteen_sp">15sp</dimen>
+
+</resources>
