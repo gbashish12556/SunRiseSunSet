@@ -25,6 +25,10 @@ public class LocationRepository {
         return allLocation;
     }
 
+    public Location getLocation(int id){
+        return locationDao.getLocation(id);
+    }
+
     public static class InserAsyncTask extends AsyncTask<Location, Void,Void> {
 
         private LocationDao locationDao;

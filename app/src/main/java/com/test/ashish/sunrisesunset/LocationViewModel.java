@@ -26,5 +26,9 @@ public class LocationViewModel extends AndroidViewModel {
         return locationRepository.getAllLocation();
     }
 
+    public Location getLocation(int id){
+        return locationRepository.getLocation(id);
+    }
+
 
 }

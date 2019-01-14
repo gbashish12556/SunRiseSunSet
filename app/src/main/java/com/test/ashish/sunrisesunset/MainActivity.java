@@ -2,11 +2,14 @@ package com.test.ashish.sunrisesunset;
 
 import android.Manifest;
 import android.app.Activity;
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.media.Image;
 import android.os.Handler;
 import android.os.ResultReceiver;
@@ -22,6 +25,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,11 +53,15 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.List;
+import java.util.ListIterator;
 import java.util.logging.Logger;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
         com.google.android.gms.location.LocationListener {
 
+    List<com.test.ashish.sunrisesunset.Location> locations;
+    LocationViewModel locationViewModel;
     Location mLastLocation;
     public String mAddressOutput;
     public String mAreaOutput;
@@ -68,7 +76,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     LinearLayout pickup_container;
     SupportMapFragment mMapFragment;
     private GoogleMap mMap;
-    Location location;
     private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
     private static String TAG = "MAP LOCATION";
     private Activity mContext;
@@ -135,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 saveLocation();
                 return true;
             case R.id.bookmarked_location:
-                bookmarkedLocation();
+                bookmarkedLocation(item.getActionView());
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -143,11 +150,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void saveLocation() {
-
+        com.test.ashish.sunrisesunset.Location location = new com.test.ashish.sunrisesunset.Location(mLastLocation.getLatitude(), mLastLocation.getLongitude(), mAddressOutput);
+        locationViewModel.insert(location);
     }
 
-    public void bookmarkedLocation() {
+    public void bookmarkedLocation(View view) {
 
+        final PopupMenu popupMenu = new PopupMenu(this, view);
+        locationViewModel = (LocationViewModel) ViewModelProviders.of(this).get(LocationViewModel.class);
+        locationViewModel.getAllLocation().observe(this,new Observer<List<com.test.ashish.sunrisesunset.Location>>() {
+            @Override
+            public void onChanged(@Nullable List<com.test.ashish.sunrisesunset.Location> notes) {
+                for(int i=0;i<notes.size();i++) {
+                    popupMenu.getMenu().add(Menu.NONE, notes.get(i).getId(), notes.get(i).getId(), notes.get(i).getAddress()).setEnabled(true);
+                }
+            }
+        });
+        popupMenu.show();
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                int id  = item.getItemId();
+                com.test.ashish.sunrisesunset.Location location = locationViewModel.getLocation(id);
+                Location temp = new Location(LocationManager.GPS_PROVIDER);
+                temp.setLatitude(location.getLat());
+                temp.setLongitude(location.getLng());
+                changeMap(temp);
+                return true;
+            }
+        });
     }
 
     public void LoadAddress() {
@@ -365,6 +396,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     // TODO call location based filter
                     LatLng latLong;
                     latLong = place.getLatLng();
+                    mLastLocation.setLatitude(latLong.latitude);
+                    mLastLocation.setLongitude(latLong.longitude);
                     pickup_location.setText(place.getName().toString().replaceAll("[\r\n]+", " ") + "");
                     CameraPosition cameraPosition = new CameraPosition.Builder().target(latLong).zoom(17).build();
                     if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
