@@ -51,12 +51,10 @@ public class FetchAddressIntentService extends IntentService {
     @Override
     public void onHandleIntent(Intent intent) {
         String errorMessage = "";
-//        Helper.logD('FetchAddressIntentService','FetchAddressIntentService');
         mReceiver = intent.getParcelableExtra(AppUtils.LocationConstants.RECEIVER);
 
         // Check if receiver was properly registered.
         if (mReceiver == null) {
-            Log.d(TAG, "No receiver received. There is nowhere to send the results.");
             return;
         }
         // Get the location passed to this service through an extra.
@@ -66,7 +64,6 @@ public class FetchAddressIntentService extends IntentService {
         // send an error error message and return.
         if (location == null) {
             errorMessage = "No Location data provided";
-            Log.d(TAG, errorMessage);
             deliverResultToReceiver(AppUtils.LocationConstants.FAILURE_RESULT, errorMessage, null);
             return;
         }
@@ -81,6 +78,7 @@ public class FetchAddressIntentService extends IntentService {
         // Locale, which represents a specific geographical or linguistic region. Locales are used
         // to alter the presentation of information such as numbers or dates to suit the conventions
         // in the region they describe.
+
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         // Address found using the Geocoder.
@@ -97,16 +95,15 @@ public class FetchAddressIntentService extends IntentService {
                     1);
          } catch (IOException ioException) {
             // Catch network or other I/O problems.
-            errorMessage = "service not avaiable";
+
         } catch (IllegalArgumentException illegalArgumentException) {
             // Catch invalid latitude or longitude values.
-            errorMessage = "Invalid lat long";
+
         }
 
         // Handle case where no address was found.
         if (addresses == null || addresses.size() == 0) {
             if (errorMessage.isEmpty()) {
-                errorMessage = "No address found";
              }
             deliverResultToReceiver(AppUtils.LocationConstants.FAILURE_RESULT, errorMessage, null);
         } else {
@@ -128,6 +125,7 @@ public class FetchAddressIntentService extends IntentService {
      */
     private void deliverResultToReceiver(int resultCode, String message, Address address) {
         try {
+
             Bundle bundle = new Bundle();
             bundle.putString(AppUtils.LocationConstants.RESULT_DATA_KEY, message);
             bundle.putString(AppUtils.LocationConstants.LOCATION_DATA_AREA, address.getSubLocality());

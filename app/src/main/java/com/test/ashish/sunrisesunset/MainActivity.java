@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.media.Image;
@@ -14,6 +15,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -28,20 +30,31 @@ import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.AutocompleteFilter;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
-public class MainActivity extends AppCompatActivity implements  GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
+import java.util.logging.Logger;
 
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
+        com.google.android.gms.location.LocationListener {
+
+    Location mLastLocation;
     public String mAddressOutput;
     public String mAreaOutput;
     public String mCityOutput;
@@ -67,17 +80,22 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
     LinearLayout marker_container;
     ImageView imageMarker;
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
-    public static GoogleApiClient mGoogleApiClient;
+    //    public static GoogleApiClient mGoogleApiClient;
     private AddressResultReceiver mResultReceiver;
+    FusedLocationProviderClient client;
+    public Boolean mResolvingError = false;
+    private static final int REQUEST_RESOLVE_ERROR = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = this;
+
         pickup_container = (LinearLayout) findViewById(R.id.pickup_point_container);
         pickup_location = (TextView) findViewById(R.id.pickup_location);
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mMapFragment);
+        mMapFragment.getMapAsync(this);
 
         marker_container = (LinearLayout) findViewById(R.id.marker_container);
         imageMarker = (ImageView) findViewById(R.id.imageMarker);
@@ -89,11 +107,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             @Override
             public void onClick(View v) {
                 try {
-
-                    LatLng southwest = new LatLng(180, 180);
-                    LatLng northeast = new LatLng(180, 180);
                     Intent intent = new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_OVERLAY)
-                            .setBoundsBias(new LatLngBounds(southwest, northeast))
                             .setFilter(typeFilter)
                             .build(mContext);
                     startActivityForResult(intent, 1);
@@ -104,18 +118,8 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 }
             }
         });
-        buildGoogleApiClient();
     }
 
-    public synchronized void buildGoogleApiClient() {
-
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        LoadAddress();
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -138,14 +142,16 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         }
     }
 
-    public void saveLocation(){
+    public void saveLocation() {
 
     }
 
-    public void bookmarkedLocation(){
+    public void bookmarkedLocation() {
 
     }
-    public void LoadAddress(){
+
+    public void LoadAddress() {
+        Log.d("load_address", "load_address");
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -158,32 +164,30 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        if(mGoogleApiClient.isConnected()) {
-            Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-            if (mLastLocation != null) {
-                changeMap(mLastLocation);
-            } else
-                try {
-                    LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-                } catch (Exception e) {
-                    e.printStackTrace();
+
+        client =
+                LocationServices.getFusedLocationProviderClient(this);
+
+        client.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                //TODO: UI updates.
+                if (location != null) {
+                    changeMap(location);
                 }
-            try {
-                LocationRequest mLocationRequest = new LocationRequest();
-                mLocationRequest.setInterval(5000);
-                mLocationRequest.setFastestInterval(1000);
-                mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-                LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }
+        });
+
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        if(this != null) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+        if (this != null) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED &&
+                    ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                            != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -193,20 +197,13 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 // for ActivityCompat#requestPermissions for more details.
                 return;
             }
-            if (mGoogleApiClient.isConnected()) {
-                try {
-                    if (location != null)
-                        changeMap(location);
-                    LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            Log.d("locationChanged", "locationChanged");
+            changeMap(location);
         }
     }
 
     private void changeMap(Location location) {
-        if(this != null) {
+        if (this != null) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
@@ -219,26 +216,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             }
             // check if map is created successfully or not
             if (mMap == null) {
-                mMap = mMapFragment.getMap();
-                mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
-                    @Override
-                    public void onCameraChange(CameraPosition cameraPosition) {
-                        mCenterLatLong = cameraPosition.target;
-                        current_lat = mCenterLatLong.latitude;
-                        current_lng = mCenterLatLong.longitude;
-                        mMap.clear();
-                        try {
-                            Location mLocation = new Location("");
-                            mLocation.setLatitude(current_lat);
-                            mLocation.setLongitude(current_lng);
-                            marker_container.setVisibility(View.VISIBLE);
-
-                            startIntentService(mLocation);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
+                mMapFragment.getMapAsync(this);
             }
             if (mMap != null) {
                 mMap.getUiSettings().setZoomControlsEnabled(false);
@@ -254,14 +232,15 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             }
         }
     }
+
     /**
      * Creates an intent, adds location data to it as an extra, and starts the intent service for
      * fetching an address.
      */
     public void startIntentService(Location mLocation) {
-        if(this!= null) {
+        if (this != null) {
             // Create an intent for passing to the intent service responsible for fetching the address.
-            Intent intent = new Intent(this, FetchAddressIntentService.class);
+            Intent intent = new Intent(MainActivity.this, FetchAddressIntentService.class);
             // Pass the result receiver as an extra to the service.
             intent.putExtra(AppUtils.LocationConstants.RECEIVER, mResultReceiver);
             // Pass the location data as an extra to the service.
@@ -269,8 +248,63 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             // Start the service. If the service isn't already running, it is instantiated and started
             // (creating a process for it if needed); if it is running then it remains running. The
             // service kills itself automatically once all intents are processed.
-            startService(intent);
+            Log.d("addressServiceCalled", "addressServiceCalled");
+            this.startService(intent);
         }
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        Log.d("MapReady", "MapReady");
+        mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
+            @Override
+            public void onCameraChange(CameraPosition cameraPosition) {
+                mCenterLatLong = cameraPosition.target;
+                current_lat = mCenterLatLong.latitude;
+                current_lng = mCenterLatLong.longitude;
+                mMap.clear();
+                try {
+                    Location mLocation = new Location("");
+                    mLocation.setLatitude(current_lat);
+                    mLocation.setLongitude(current_lng);
+                    marker_container.setVisibility(View.VISIBLE);
+                    Log.d("mapMoved", "mapMoved");
+                    startIntentService(mLocation);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        LocationRequest mLocationRequest = LocationRequest.create();
+        mLocationRequest.setInterval(60000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationCallback mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+                for (Location location : locationResult.getLocations()) {
+                    if (location != null) {
+                        //TODO: UI updates.
+                    }
+                }
+            }
+        };
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        LocationServices.getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, mLocationCallback, null);
+        LoadAddress();
     }
 
     /**
@@ -288,13 +322,14 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         @Override
         public void onReceiveResult(int resultCode, Bundle resultData) {
             // Display the address string or an error message sent from the intent service.
-
+            Log.d("resultReceived","resultReceived");
             mAddressOutput = resultData.getString(AppUtils.LocationConstants.RESULT_DATA_KEY);
             mAreaOutput = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_AREA);
             mCityOutput = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_CITY);
             mPostaleCode  = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_EXTRA);
             mStreetOutput = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_STREET);
             mAddressOutput = mStreetOutput;
+            Log.d("displayOutput","displayOutput");
             displayAddressOutput();
             // Show a toast message if an address was found.
             if (resultCode == AppUtils.LocationConstants.SUCCESS_RESULT) {
@@ -349,20 +384,6 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 }
             }
         }
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-
-    }
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
     }
 
 }
