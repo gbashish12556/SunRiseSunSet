@@ -57,8 +57,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Logger;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
-        com.google.android.gms.location.LocationListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
 
     List<com.test.ashish.sunrisesunset.Location> locations;
     LocationViewModel locationViewModel;
@@ -204,33 +203,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onSuccess(Location location) {
                 //TODO: UI updates.
                 if (location != null) {
-                    changeMap(location);
+                    mLastLocation = location;
+                    changeMap(mLastLocation);
                 }
             }
         });
 
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-
-        if (this != null) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED &&
-                    ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                            != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
-            }
-            Log.d("locationChanged", "locationChanged");
-            changeMap(location);
-        }
     }
 
     private void changeMap(Location location) {
