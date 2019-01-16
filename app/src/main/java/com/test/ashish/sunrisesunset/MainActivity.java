@@ -106,7 +106,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //Intialising calender object
         cal = Calendar.getInstance();
         cal.add(Calendar.DATE, 1);
-        TimeZone tz = TimeZone.getTimeZone("IST");
+        TimeZone tz = TimeZone.getTimeZone("GMT+5:30");
+        cal.setTime(new Date());
         cal.setTimeZone(tz);
 
         //Defining actions on all the buttons
