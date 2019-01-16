@@ -41,7 +41,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:visibility="gone"
             android:layout_gravity="center"
             android:layout_marginBottom="20dp"
             android:orientation="vertical" >
@@ -50,7 +49,7 @@
                 android:id="@+id/imageMarker"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_location_on_black_24dp"
+                android:src="@drawable/ic_edit_location_black_24dp"
                 android:layout_gravity="center" />
 
         </LinearLayout>

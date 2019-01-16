@@ -15,7 +15,7 @@ public class AppUtils {
 
         public static final int FAILURE_RESULT = 1;
 
-        public static final String PACKAGE_NAME = "in.driverlo.www.driverlo_customer";
+        public static final String PACKAGE_NAME = "com.test.ashish.sunrisesunset";
 
         public static final String RECEIVER = PACKAGE_NAME + ".RECEIVER";
 

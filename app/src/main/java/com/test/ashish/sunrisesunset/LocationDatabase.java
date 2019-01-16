@@ -42,7 +42,6 @@ public abstract class LocationDatabase extends RoomDatabase {
 
         @Override
         protected Void doInBackground(Void... voids) {
-//            noteDao.insert(new Location("title1", "description1", "1"));
             return null;
         }
     }

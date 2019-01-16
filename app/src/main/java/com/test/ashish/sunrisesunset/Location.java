@@ -22,11 +22,10 @@ public class Location {
         this.address = address;
     }
 
-
+    //Getter and setter method for all the variables
     public void setId(int id) {
         this.id = id;
     }
-
 
     public int getId() {
         return id;

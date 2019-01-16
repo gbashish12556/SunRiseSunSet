@@ -48,6 +48,7 @@ public class FetchAddressIntentService extends IntentService {
      * This service calls this method from the default worker thread with the intent that started
      * the service. When this method returns, the service automatically stops.
      */
+
     @Override
     public void onHandleIntent(Intent intent) {
         String errorMessage = "";
@@ -57,6 +58,7 @@ public class FetchAddressIntentService extends IntentService {
         if (mReceiver == null) {
             return;
         }
+
         // Get the location passed to this service through an extra.
         Location location = intent.getParcelableExtra(AppUtils.LocationConstants.LOCATION_DATA_EXTRA);
 
@@ -115,7 +117,6 @@ public class FetchAddressIntentService extends IntentService {
             }
             deliverResultToReceiver(AppUtils.LocationConstants.SUCCESS_RESULT,
                     TextUtils.join(System.getProperty("line.separator"), addressFragments), address);
-            //TextUtils.split(TextUtils.join(System.getProperty("line.separator"), addressFragments), System.getProperty("line.separator"));
 
         }
     }
@@ -123,6 +124,7 @@ public class FetchAddressIntentService extends IntentService {
     /**
      * Sends a resultCode and message to the receiver.
      */
+
     private void deliverResultToReceiver(int resultCode, String message, Address address) {
         try {
 

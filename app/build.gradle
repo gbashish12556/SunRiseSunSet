@@ -12,9 +12,14 @@ android {
         multiDexEnabled true
     }
     buildTypes {
+        debug {
+            manifestPlaceholders = [googleMapsKey: 'AIzaSyAEEw3R0HuC7_1B-8Rk0fpxweHiIPcRm4U']
+
+        }
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            manifestPlaceholders = [googleMapsKey: 'AIzaSyC6F4lGgGKSZXvpmzgaoJsRLbPoZZ3E5NI']
         }
     }
 

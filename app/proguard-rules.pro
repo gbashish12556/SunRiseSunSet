@@ -19,3 +19,50 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+#
+# Proguard config for a Google Maps Android API sample project.
+#
+# This file only contains the proguard options required by the Google Maps
+# Android API v2. You should use these settings in addition to those provided by the
+# Android SDK (<sdk>/tools/proguard/proguard-android-optimize.txt).
+#
+
+#-ignorewarnings
+
+# For more details on the use of proguard in Android, please read:
+# http://proguard.sourceforge.net/manual/examples.html#androidapplication
+-optimizations !code/simplification/variable
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Fragment
+-keep public class * extends android.support.v4.app.Fragment
+-keep class com.google.android.gms.maps.** { *; }
+-keep interface com.google.android.gms.maps.** { *; }
+-keep class android.location.** { *; }
+
+-keepnames class com.google.android.maps.** {*;}
+-keep public class com.google.android.maps.** {*;}
+
+-dontwarn com.google.android.maps.GeoPoint
+-dontwarn com.google.android.maps.MapActivity
+-dontwarn com.google.android.maps.MapView
+-dontwarn com.google.android.maps.MapController
+-dontwarn com.google.android.maps.Overlay
+-dontwarn android.arch.util.paging.CountedDataSource
+-dontwarn android.arch.persistence.room.paging.LimitOffsetDataSource
+
+# The Maps Android API uses custom parcelables.
+# Use this rule (which is slightly broader than the standard recommended one)
+# to avoid obfuscating them.
+-keepclassmembers class * implements android.os.Parcelable {
+    static *** CREATOR;
+}
+# The Maps Android API uses serialization.
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}

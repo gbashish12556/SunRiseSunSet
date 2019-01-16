@@ -38,9 +38,16 @@ public class FlashActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flash);
+
+        //Chack if app has permission to access  location
         if(checkLocationPermission()) {
+
+            // check if google play services is updated
             if (checkPlayServices(this)) {
+
+                //Check is gps is enabled
                 if (isGpsEnabled(this)) {
+                    //Check is internet is enabled
                     if (isNetworkEnabled(this)) {
                         nextActivity();
                     } else {
@@ -54,6 +61,8 @@ public class FlashActivity extends Activity {
     }
 
     public static boolean isNetworkEnabled(Context ctx) {
+
+        //Check if internet or wifi is enabled
         ConnectivityManager conMgr = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = conMgr.getActiveNetworkInfo();
         if (netInfo == null || !netInfo.isConnected() || !netInfo.isAvailable()) {
@@ -64,6 +73,8 @@ public class FlashActivity extends Activity {
     }
 
     private boolean checkPlayServices(Activity ctx) {
+
+        //Check if google play services is updated/ if not update it
         GoogleApiAvailability googleAPI = GoogleApiAvailability.getInstance();
         int result = googleAPI.isGooglePlayServicesAvailable(ctx);
         if (result != ConnectionResult.SUCCESS) {
@@ -77,6 +88,7 @@ public class FlashActivity extends Activity {
 
     public static boolean isGpsEnabled(Context ctx) {
         LocationManager locationManager = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+
         //getting GPS status
         Boolean isGPSenabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (isGPSenabled == true) {
@@ -87,6 +99,8 @@ public class FlashActivity extends Activity {
     }
 
     public void nextActivity() {
+
+        //If every thing works fine go to main activity
         Intent intent = new Intent(FlashActivity.this, MainActivity.class);
         startActivity(intent);
         finish();
@@ -94,6 +108,7 @@ public class FlashActivity extends Activity {
 
     public void settingsrequest() {
 
+        //Show GPS dialog for anabling gps on device
         LocationRequest mlocationRequest = LocationRequest.create();
         mlocationRequest.setInterval(10000);
         mlocationRequest.setFastestInterval(5000);

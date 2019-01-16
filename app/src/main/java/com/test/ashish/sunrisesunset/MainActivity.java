@@ -10,15 +10,13 @@ import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
-import android.media.Image;
 import android.os.Build;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
@@ -35,11 +33,8 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -54,20 +49,16 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 
-import java.security.Provider;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
 
@@ -86,7 +77,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private LatLng mCenterLatLong;
     private double current_lat = 22.58, current_lng = 88.34;
-    private LinearLayout marker_container;
     private ImageView nextDayButton, previousDayButton, currentDayButton;
 
     private AddressResultReceiver mResultReceiver;
@@ -97,7 +87,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //Intialising context
         mContext = this;
+
+        //Taking reference of all the views
         mLastLocation = new Location(LocationManager.GPS_PROVIDER);
         pickup_container = (LinearLayout) findViewById(R.id.pickup_point_container);
         pickup_location = (TextView) findViewById(R.id.pickup_location);
@@ -109,11 +103,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         moonsetTextView = findViewById(R.id.moonset_time);
 
 
+        //Intialising calender object
         cal = Calendar.getInstance();
         cal.add(Calendar.DATE, 1);
         TimeZone tz = TimeZone.getTimeZone("IST");
         cal.setTimeZone(tz);
 
+        //Defining actions on all the buttons
         nextDayButton= findViewById(R.id.next_date);
         nextDayButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 changeDate();
             }
         });
+
         previousDayButton= findViewById(R.id.previous_date);
         previousDayButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -130,7 +127,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 changeDate();
             }
         });
-
 
         currentDayButton= findViewById(R.id.current_date);
         currentDayButton.setOnClickListener(new View.OnClickListener() {
@@ -141,12 +137,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        //Intialising mapFragment
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mMapFragment);
         mMapFragment.getMapAsync(this);
 
+        //Intialising location viewmodel
         locationViewModel = (LocationViewModel) ViewModelProviders.of(this).get(LocationViewModel.class);
-
-        marker_container = (LinearLayout) findViewById(R.id.marker_container);
 
         mResultReceiver = new AddressResultReceiver(new Handler());
         final AutocompleteFilter typeFilter = new AutocompleteFilter.Builder()
@@ -172,6 +168,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void createNotification(){
 
+        //Build notification dialog for showing golden hour
 
         String title = "GOLDEN HOUR";
         String message = "this is golden hour";
@@ -194,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .setDefaults(Notification.DEFAULT_ALL)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message));
 
+        //Check version of sdk
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             builder.setPriority(NotificationManager.IMPORTANCE_HIGH);
         }
@@ -207,6 +205,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void changeDate(){
+
+        //Change date on datetextview
         SimpleDateFormat format1 = new SimpleDateFormat("EEE, MMM d, yyyy");
         String formatted = format1.format(cal.getTime());
         dateTextView.setText(formatted);
@@ -215,48 +215,96 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void calculateTime(){
 
-        long currentTimeiInMillis = cal.getTimeInMillis()%86400000;
-        long timeinMillis = Helper.computeSunrise(mLastLocation.getLatitude(), mLastLocation.getLongitude(),cal.get(Calendar.DAY_OF_YEAR), true);
 
+        //Calculate sun rise/set and moon rise/set time
+        SunMoonHelper sunMoonHelper = new SunMoonHelper(mLastLocation.getLongitude(), mLastLocation.getLatitude());
+        sunMoonHelper.setTime(cal.getTimeInMillis());
+
+        long currentTimeiInMillis = cal.getTimeInMillis();
+
+        //Intialise calender
         Calendar calender = Calendar.getInstance();
         TimeZone tz = TimeZone.getTimeZone("GMT+5:30");
         calender.setTimeZone(tz);
         SimpleDateFormat format1 = new SimpleDateFormat("hh:mm aaa");
 
-        calender.setTimeInMillis(timeinMillis);
+        //Calculating sunrise time and setting to text view
+        long sunrRiseTimeMillis = sunMoonHelper.getSunRiseSet(true);
+        calender.setTimeInMillis(sunrRiseTimeMillis);
         String sunRiseTime = format1.format(calender.getTime());
 
         sunRiseTextView.setText(sunRiseTime);
 
-        long sunSetTimeMillis = Helper.computeSunrise(mLastLocation.getLatitude(), mLastLocation.getLongitude(),cal.get(Calendar.DAY_OF_YEAR), false);
+        //Calculating sunset time and setting to text view
+        long sunSetTimeMillis =  sunMoonHelper.getSunRiseSet(false);
         calender.setTimeInMillis(sunSetTimeMillis);
         String sunSetTime = format1.format(calender.getTime());
 
         sunSetTextView.setText(sunSetTime);
 
-//        Log.d("sunSetTimeMillis", String.valueOf(sunSetTimeMillis));
-//        Log.d()
+        //Calculating moon time and setting to text view
+        long moonRiseTimeMillis =  sunMoonHelper.getMoonRiseSet(true);
+        calender.setTimeInMillis(moonRiseTimeMillis);
+        String moonRiseTime = format1.format(calender.getTime());
+
+        moonRiseTextView.setText(moonRiseTime);
+
+        //Calculating moonset time and setting to text view
+        long moonSetTimeMillis =  sunMoonHelper.getMoonRiseSet(false);
+        calender.setTimeInMillis(moonSetTimeMillis);
+        String moonSetTime = format1.format(calender.getTime());
+
+        moonsetTextView.setText(moonSetTime);
+
+        //Checking if current time is within golden hour range
         if((sunSetTimeMillis-currentTimeiInMillis)>0 && (sunSetTimeMillis-currentTimeiInMillis) < 60*60*1000){
             createNotification();
         }
 
+    }
 
+
+
+    public void drawLine(double latitude, double longitude) {
+
+        PolylineOptions rectOptions = new PolylineOptions();
+
+        ArrayList<LatLng> pathPoint = new ArrayList<LatLng>();
+
+        pathPoint.add(new LatLng(latitude, longitude));
+        pathPoint.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+
+        if(mMap != null) {
+            rectOptions.addAll(pathPoint);
+            rectOptions.width(5);
+            rectOptions.color(Color.BLUE);
+            mMap.addPolyline(rectOptions);
+        }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater menuInflater = getMenuInflater();
+
+        //Crating tool bar action menu for bookmark and pin button
         menuInflater.inflate(R.menu.main_menu, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+
+        //Checking if bookmark or pin has been clicked
+        // and handling the respective event
         switch (item.getItemId()) {
             case R.id.save_location:
+
+                //saving current location in database
                 saveLocation();
                 return true;
             case R.id.bookmarked_location:
+
+                //fetching all the saved location in database
                 bookmarkedLocation(this.findViewById(R.id.bookmarked_location));
                 return true;
             default:
@@ -265,12 +313,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void saveLocation() {
+        //saving current location in database
         com.test.ashish.sunrisesunset.Location location = new com.test.ashish.sunrisesunset.Location(mLastLocation.getLatitude(), mLastLocation.getLongitude(), mAddressOutput);
         locationViewModel.insert(location);
     }
 
     public void bookmarkedLocation(View view) {
 
+        //fetching all the saved location in database
         final PopupMenu popupMenu = new PopupMenu(this, view);
         locationViewModel = (LocationViewModel) ViewModelProviders.of(this).get(LocationViewModel.class);
         locationViewModel.getAllLocation().observe(this,new Observer<List<com.test.ashish.sunrisesunset.Location>>() {
@@ -281,11 +331,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+
         popupMenu.show();
+
+        //handling action on click of popup menu
         popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                Log.d("popmenu_id",String.valueOf(item.getItemId()));
+
                 final int id  = item.getItemId();
                 new Thread(new Runnable() {
                     @Override
@@ -306,10 +359,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return true;
             }
         });
+
     }
 
     public void LoadAddress() {
-        Log.d("load_address", "load_address");
+
+        //Checking GPS permission
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -323,13 +378,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
 
-        client =
-                LocationServices.getFusedLocationProviderClient(this);
+        client = LocationServices.getFusedLocationProviderClient(this);
 
         client.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
             @Override
             public void onSuccess(Location location) {
-                //TODO: UI updates.
+
+                //If GPS is working fine load map
                 if (location != null) {
                     mLastLocation = location;
                     changeMap(mLastLocation);
@@ -357,19 +412,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mMapFragment.getMapAsync(this);
             }
             if (mMap != null) {
+
+                //Configuring map settings and setting the marker to current location
                 mMap.getUiSettings().setZoomControlsEnabled(false);
-                LatLng latLong;
-                latLong = new LatLng(location.getLatitude(), location.getLongitude());
-                CameraPosition cameraPosition = new CameraPosition.Builder().target(latLong).zoom(19f).tilt(70).build();
+                LatLng latLong = new LatLng(location.getLatitude(), location.getLongitude());
+                CameraPosition cameraPosition = new CameraPosition.Builder().target(latLong).zoom(10f).build();
                 mMap.setMyLocationEnabled(true);
                 mMap.getUiSettings().setMyLocationButtonEnabled(true);
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
+                //Starting FetchIntentService for fetching current location
                 startIntentService(location);
+
             } else {
                 Toast.makeText(this, "Sorry! unable to create maps", Toast.LENGTH_SHORT).show();
             }
         }
-//        calculateTime();
     }
 
     /**
@@ -406,7 +464,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mLocation.setLatitude(current_lat);
                     mLocation.setLongitude(current_lng);
                     mLastLocation = mLocation;
-                    marker_container.setVisibility(View.VISIBLE);
                     startIntentService(mLastLocation);
                     calculateTime();
                 } catch (Exception e) {
@@ -478,6 +535,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      * Updates the address in the UI.
      */
     public void displayAddressOutput() {
+        //Display the address of current location in textview
         try {
             if (mAreaOutput != null)
                 pickup_location.setText(mAddressOutput);
@@ -524,6 +582,5 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
-
 }
 
