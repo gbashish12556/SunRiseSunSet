@@ -28,7 +28,7 @@
 # Android SDK (<sdk>/tools/proguard/proguard-android-optimize.txt).
 #
 
-#-ignorewarnings
+-ignorewarnings
 
 # For more details on the use of proguard in Android, please read:
 # http://proguard.sourceforge.net/manual/examples.html#androidapplication
