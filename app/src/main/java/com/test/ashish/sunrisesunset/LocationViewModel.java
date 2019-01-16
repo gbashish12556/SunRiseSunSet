@@ -19,7 +19,7 @@ public class LocationViewModel extends AndroidViewModel {
     }
 
     public void insert(Location note){
-        locationRepository.insert(note);
+            locationRepository.insert(note);
     }
 
     public LiveData<List<Location>> getAllLocation(){

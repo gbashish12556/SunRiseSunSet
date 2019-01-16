@@ -7,12 +7,12 @@
         android:id="@+id/save_location"
         android:icon="@drawable/ic_location_on_black_24dp"
         android:title="Save"
-        app:showAsAction="ifRoom"/>
+        app:showAsAction="ifRoom|withText" />
 
     <item
         android:id="@+id/bookmarked_location"
         android:icon="@drawable/ic_bookmark_black_24dp"
         android:title="Bookmark"
-        app:showAsAction="ifRoom"/>
+        app:showAsAction="ifRoom|withText"/>
 
 </menu>

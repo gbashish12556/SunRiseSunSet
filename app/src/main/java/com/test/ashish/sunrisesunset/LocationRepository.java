@@ -39,7 +39,11 @@ public class LocationRepository {
 
         @Override
         protected Void doInBackground(Location... notes) {
-            locationDao.insert(notes[0]);
+             try{
+                locationDao.insert(notes[0]);
+            } catch (Exception e) {
+
+            }
             return null;
         }
     }

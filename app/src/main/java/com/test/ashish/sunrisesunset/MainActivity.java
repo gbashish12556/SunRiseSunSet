@@ -2,6 +2,10 @@ package com.test.ashish.sunrisesunset;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
@@ -11,11 +15,13 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.Image;
+import android.os.Build;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -53,58 +59,95 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import java.security.Provider;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
 
-    List<com.test.ashish.sunrisesunset.Location> locations;
-    LocationViewModel locationViewModel;
-    Location mLastLocation;
-    public String mAddressOutput;
-    public String mAreaOutput;
-    public String mCityOutput;
-    public String mStreetOutput;
-    public String mPostaleCode;
-    private TextView mLocationText;
-    private static final int PLACE_AUTOCOMPLETE_REQUEST_CODE_PICKUP = 1;
-    private static final int PLACE_AUTOCOMPLETE_REQUEST_CODE_DROPOFF = 2;
-    private String pickup_address = "", dropoff_address = "";
 
-    LinearLayout pickup_container;
-    SupportMapFragment mMapFragment;
+    private static final int PLACE_AUTOCOMPLETE_REQUEST_CODE_PICKUP = 1;
+    private List<com.test.ashish.sunrisesunset.Location> locations;
+    private LocationViewModel locationViewModel;
+    private Location mLastLocation;
+    private String mAddressOutput, mAreaOutput, mStreetOutput, mCityOutput, mPostaleCode;
+
+    private LinearLayout pickup_container;
+    private SupportMapFragment mMapFragment;
     private GoogleMap mMap;
-    private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-    private static String TAG = "MAP LOCATION";
     private Activity mContext;
-    private TextView mLocationMarkerText;
-    TextView pickup_location, dropoff_location;
-    int journey_type = 0;
+    private TextView pickup_location, dateTextView, sunRiseTextView, sunSetTextView, moonRiseTextView, moonsetTextView;
+
     private LatLng mCenterLatLong;
-    double current_lat = 22.58, current_lng = 88.34;
-    LinearLayout marker_container;
-    ImageView imageMarker;
-    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
-    //    public static GoogleApiClient mGoogleApiClient;
+    private double current_lat = 22.58, current_lng = 88.34;
+    private LinearLayout marker_container;
+    private ImageView nextDayButton, previousDayButton, currentDayButton;
+
     private AddressResultReceiver mResultReceiver;
-    FusedLocationProviderClient client;
-    public Boolean mResolvingError = false;
-    private static final int REQUEST_RESOLVE_ERROR = 1001;
+    private FusedLocationProviderClient client;
+    private Calendar cal;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = this;
-
+        mLastLocation = new Location(LocationManager.GPS_PROVIDER);
         pickup_container = (LinearLayout) findViewById(R.id.pickup_point_container);
         pickup_location = (TextView) findViewById(R.id.pickup_location);
+        dateTextView = findViewById(R.id.today_date);
+
+        sunRiseTextView = findViewById(R.id.sunrise_time);
+        sunSetTextView = findViewById(R.id.sunset_time);
+        moonRiseTextView = findViewById(R.id.moonrise_time);
+        moonsetTextView = findViewById(R.id.moonset_time);
+
+
+        cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, 1);
+        TimeZone tz = TimeZone.getTimeZone("IST");
+        cal.setTimeZone(tz);
+
+        nextDayButton= findViewById(R.id.next_date);
+        nextDayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cal.setTime(new Date((cal.getTimeInMillis()+86400000)));
+                changeDate();
+            }
+        });
+        previousDayButton= findViewById(R.id.previous_date);
+        previousDayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cal.setTime(new Date((cal.getTimeInMillis()-86400000)));
+                changeDate();
+            }
+        });
+
+
+        currentDayButton= findViewById(R.id.current_date);
+        currentDayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cal.setTime(new Date());
+                changeDate();
+            }
+        });
+
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mMapFragment);
         mMapFragment.getMapAsync(this);
 
+        locationViewModel = (LocationViewModel) ViewModelProviders.of(this).get(LocationViewModel.class);
+
         marker_container = (LinearLayout) findViewById(R.id.marker_container);
-        imageMarker = (ImageView) findViewById(R.id.imageMarker);
+
         mResultReceiver = new AddressResultReceiver(new Handler());
         final AutocompleteFilter typeFilter = new AutocompleteFilter.Builder()
                 .setTypeFilter(AutocompleteFilter.TYPE_FILTER_ADDRESS)
@@ -124,8 +167,81 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+        changeDate();
     }
 
+    public void createNotification(){
+
+
+        String title = "GOLDEN HOUR";
+        String message = "this is golden hour";
+        Intent i = new Intent(this, MainActivity.class);
+        int notificationId = 1;
+
+        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(getApplicationContext());
+        taskStackBuilder.addNextIntentWithParentStack(i);
+
+        PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), title)
+                .setColor(getResources().getColor(R.color.colorPrimary))
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setDefaults(Notification.DEFAULT_ALL)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder.setPriority(NotificationManager.IMPORTANCE_HIGH);
+        }
+        else {
+            builder.setPriority(NotificationCompat.PRIORITY_HIGH);
+        }
+
+        if (notificationManager != null) {
+            notificationManager.notify(notificationId, builder.build());
+        }
+    }
+
+    public void changeDate(){
+        SimpleDateFormat format1 = new SimpleDateFormat("EEE, MMM d, yyyy");
+        String formatted = format1.format(cal.getTime());
+        dateTextView.setText(formatted);
+        calculateTime();
+    }
+
+    public void calculateTime(){
+
+        long currentTimeiInMillis = cal.getTimeInMillis()%86400000;
+        long timeinMillis = Helper.computeSunrise(mLastLocation.getLatitude(), mLastLocation.getLongitude(),cal.get(Calendar.DAY_OF_YEAR), true);
+
+        Calendar calender = Calendar.getInstance();
+        TimeZone tz = TimeZone.getTimeZone("GMT+5:30");
+        calender.setTimeZone(tz);
+        SimpleDateFormat format1 = new SimpleDateFormat("hh:mm aaa");
+
+        calender.setTimeInMillis(timeinMillis);
+        String sunRiseTime = format1.format(calender.getTime());
+
+        sunRiseTextView.setText(sunRiseTime);
+
+        long sunSetTimeMillis = Helper.computeSunrise(mLastLocation.getLatitude(), mLastLocation.getLongitude(),cal.get(Calendar.DAY_OF_YEAR), false);
+        calender.setTimeInMillis(sunSetTimeMillis);
+        String sunSetTime = format1.format(calender.getTime());
+
+        sunSetTextView.setText(sunSetTime);
+
+//        Log.d("sunSetTimeMillis", String.valueOf(sunSetTimeMillis));
+//        Log.d()
+        if((sunSetTimeMillis-currentTimeiInMillis)>0 && (sunSetTimeMillis-currentTimeiInMillis) < 60*60*1000){
+            createNotification();
+        }
+
+
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -141,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 saveLocation();
                 return true;
             case R.id.bookmarked_location:
-                bookmarkedLocation(item.getActionView());
+                bookmarkedLocation(this.findViewById(R.id.bookmarked_location));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -169,12 +285,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                int id  = item.getItemId();
-                com.test.ashish.sunrisesunset.Location location = locationViewModel.getLocation(id);
-                Location temp = new Location(LocationManager.GPS_PROVIDER);
-                temp.setLatitude(location.getLat());
-                temp.setLongitude(location.getLng());
-                changeMap(temp);
+                Log.d("popmenu_id",String.valueOf(item.getItemId()));
+                final int id  = item.getItemId();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final com.test.ashish.sunrisesunset.Location location = locationViewModel.getLocation(id);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Location temp = new Location(LocationManager.GPS_PROVIDER);
+                                temp.setLatitude(location.getLat());
+                                temp.setLongitude(location.getLng());
+                                mLastLocation = temp;
+                                changeMap(mLastLocation);
+                            }//public void run() {
+                        });
+                    }
+                }).start();
                 return true;
             }
         });
@@ -212,6 +340,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void changeMap(Location location) {
+        calculateTime();
         if (this != null) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
@@ -240,6 +369,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(this, "Sorry! unable to create maps", Toast.LENGTH_SHORT).show();
             }
         }
+//        calculateTime();
     }
 
     /**
@@ -257,7 +387,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // Start the service. If the service isn't already running, it is instantiated and started
             // (creating a process for it if needed); if it is running then it remains running. The
             // service kills itself automatically once all intents are processed.
-            Log.d("addressServiceCalled", "addressServiceCalled");
             this.startService(intent);
         }
     }
@@ -265,7 +394,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        Log.d("MapReady", "MapReady");
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
@@ -277,9 +405,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     Location mLocation = new Location("");
                     mLocation.setLatitude(current_lat);
                     mLocation.setLongitude(current_lng);
+                    mLastLocation = mLocation;
                     marker_container.setVisibility(View.VISIBLE);
-                    Log.d("mapMoved", "mapMoved");
-                    startIntentService(mLocation);
+                    startIntentService(mLastLocation);
+                    calculateTime();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -331,14 +460,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         public void onReceiveResult(int resultCode, Bundle resultData) {
             // Display the address string or an error message sent from the intent service.
-            Log.d("resultReceived","resultReceived");
             mAddressOutput = resultData.getString(AppUtils.LocationConstants.RESULT_DATA_KEY);
             mAreaOutput = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_AREA);
             mCityOutput = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_CITY);
             mPostaleCode  = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_EXTRA);
             mStreetOutput = resultData.getString(AppUtils.LocationConstants.LOCATION_DATA_STREET);
             mAddressOutput = mStreetOutput;
-            Log.d("displayOutput","displayOutput");
             displayAddressOutput();
             // Show a toast message if an address was found.
             if (resultCode == AppUtils.LocationConstants.SUCCESS_RESULT) {
@@ -392,6 +519,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                     mMap.setMyLocationEnabled(true);
                     mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                    changeDate();
                 }
             }
         }
