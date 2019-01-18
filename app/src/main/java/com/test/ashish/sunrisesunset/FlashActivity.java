@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -39,6 +40,11 @@ public class FlashActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flash);
 
+        //Enabling Wifi
+        WifiManager wifiManager = (WifiManager)getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if(!wifiManager.isWifiEnabled()) {
+            wifiManager.setWifiEnabled(true);
+        }
         //Chack if app has permission to access  location
         if(checkLocationPermission()) {
 
