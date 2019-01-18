@@ -57,7 +57,7 @@ public class FlashActivity extends Activity {
                     if (isNetworkEnabled(this)) {
                         nextActivity();
                     } else {
-                        showDialog(this, "Network Error", "Not is not enabled");
+                        showDialog(this, "Network Error", "Internet is not enabled");
                     }
                 } else {
                     settingsrequest();
@@ -213,7 +213,7 @@ public class FlashActivity extends Activity {
                         if(isNetworkEnabled(this)){
                             nextActivity();
                         }else{
-                            showDialog(this, "Network Error", "Network is not enabled");
+                            showDialog(this, "Network Error", "Internet is not enabled");
                         }
                     }else{
                         settingsrequest();
@@ -238,7 +238,7 @@ public class FlashActivity extends Activity {
                         if(isNetworkEnabled(this)){
                             nextActivity();
                         }else{
-                            showDialog(this, "Network Error", "Network is not enabled");
+                            showDialog(this, "Network Error", "Internet is not enabled");
                         }                        break;
                     case Activity.RESULT_CANCELED:
                         // The user was asked to change settings, but chose not to
