@@ -9,10 +9,12 @@ import android.arch.persistence.room.Update;
 
 import java.util.List;
 
+import static android.arch.persistence.room.OnConflictStrategy.REPLACE;
+
 @Dao
 public interface LocationDao {
 
-    @Insert
+    @Insert(onConflict = REPLACE)
     void insert(Location location);
 
     @Query("SELECT*FROM location_table ORDER BY id")
