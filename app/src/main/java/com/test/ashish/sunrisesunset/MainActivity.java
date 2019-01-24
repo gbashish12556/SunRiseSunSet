@@ -315,7 +315,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void saveLocation() {
         //saving current location in database
-        com.test.ashish.sunrisesunset.Location location = new com.test.ashish.sunrisesunset.Location(mLastLocation.getLatitude(), mLastLocation.getLongitude(), mAddressOutput);
+        com.test.ashish.sunrisesunset.Location location = new com.test.ashish.sunrisesunset.Location(mLastLocation.getLatitude(), mLastLocation.getLongitude(), mAddressOutput, new Date());
         locationViewModel.insert(location);
     }
 
